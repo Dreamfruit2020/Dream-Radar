@@ -24,6 +24,24 @@ from .travel import estimate_travel
 
 
 def build_for_club(club_name: str, home_venue, visit_date: date | None = None) -> list[FuellingWindow]:
+    windows, _used_real_fixtures = build_for_club_with_source(club_name, home_venue, visit_date)
+    return windows
+
+
+def build_for_club_with_source(
+    club_name: str, home_venue, visit_date: date | None = None
+) -> tuple[list[FuellingWindow], bool]:
+    """
+    Same pipeline as build_for_club(), but also reports whether the
+    fixture list came from a real API-Football pull or the illustrative
+    placeholder — fixtures drive everything downstream (congestion,
+    travel, climate), so that's the meaningful "is this real" signal for
+    a caller deciding how to label output. Individual components below
+    (roster, load, international) can still each independently fall back
+    to their own mock data even when fixtures are real — see
+    radar/README.md — so this flag means "primarily real," not
+    "every single number is verified live."
+    """
     visit_date = visit_date or date.today()
 
     # Real fixtures when API_FOOTBALL_KEY is set, else the illustrative
@@ -32,6 +50,7 @@ def build_for_club(club_name: str, home_venue, visit_date: date | None = None) -
     # get confused — either way we fail toward the known-safe illustrative
     # path rather than silently building on nothing.
     all_fixtures = None
+    used_real_fixtures = False
     if api_football.is_configured():
         all_fixtures = fixtures_mod.real_fixtures(
             api_football.CRYSTAL_PALACE_TEAM_ID,
@@ -39,6 +58,8 @@ def build_for_club(club_name: str, home_venue, visit_date: date | None = None) -
             from_date=visit_date - timedelta(days=LOAD_LOOKBACK_DAYS),
             to_date=visit_date + timedelta(days=30),
         )
+        if all_fixtures:
+            used_real_fixtures = True
     if not all_fixtures:
         all_fixtures = fixtures_mod.example_fixtures(season_start=visit_date)
 
@@ -79,7 +100,7 @@ def build_for_club(club_name: str, home_venue, visit_date: date | None = None) -
         international_breaks=international.INTERNATIONAL_BREAKS,
     )
 
-    return fuelling_windows
+    return fuelling_windows, used_real_fixtures
 
 
 if __name__ == "__main__":
