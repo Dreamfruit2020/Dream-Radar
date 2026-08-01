@@ -1,0 +1,4 @@
+{
+  "_instructions": "Manual process (Connor's decision, 1 Aug 2026 — no clean automated source exists for this one). About 1-2 weeks before each date in INTERNATIONAL_BREAKS (radar/international.py), check national federation announcements for any of this club's rostered players (see player_bio.get_roster()) and add an entry below for each one called up. player_name must match the roster exactly. Leave call_ups empty if you've checked and nobody from the roster was called up for that break — an empty list here is read as 'checked, nobody away,' not 'not checked yet,' so only clear a break's entries once you've actually looked.",
+  "call_ups": []
+}
