@@ -118,6 +118,41 @@ def build_example_windows():
     return windows, travel, climate
 
 
+def get_windows(visit_date: date | None = None) -> tuple[list, bool]:
+    """
+    Real-with-fallback entry point for every deliverable generator
+    (make_radar_briefing.py, make_radar_teaser.py, make_radar_shareable.py).
+
+    Tries radar.build.build_for_club_with_source() first — real fixtures,
+    roster, load, climate and call-ups when API_FOOTBALL_KEY is set and
+    reachable. Falls back to THIS file's curated illustrative stretch
+    (not radar.fixtures.example_fixtures()'s generic placeholder) so the
+    fallback experience stays exactly the demo that's already been
+    visually verified throughout this repo, rather than a different,
+    untested illustrative set.
+
+    Any unexpected failure in the real path (not just "no key
+    configured") also falls back here rather than crashing the ops
+    tool — fail toward the known-safe illustrative output, never toward
+    a broken page.
+
+    Returns (windows, is_real_data).
+    """
+    from radar.build import build_for_club_with_source
+
+    try:
+        real_windows, used_real = build_for_club_with_source(
+            "Crystal Palace FC", SELHURST_PARK, visit_date
+        )
+        if used_real and real_windows:
+            return real_windows, True
+    except Exception:
+        pass  # fall through to the illustrative path below
+
+    example_windows, _, _ = build_example_windows()
+    return example_windows, False
+
+
 def main() -> None:
     travel = {id(f): estimate_travel(f, SELHURST_PARK) for f in FIXTURES}
     climate = {}

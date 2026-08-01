@@ -7,11 +7,13 @@ the quiet room at DFX step 5." Same dark, cinematic brand system as
 scripts/make_concept_pdf.py — this is a prospect-facing artefact, not an
 internal one, so it should look and feel like the same product family.
 
-Runs on the illustrative Crystal Palace worked example
-(scripts/worked_example.py) — every page carries a visible SAMPLE OUTPUT
-marker so this is never mistaken for a real club's real data. Swap the
-data source in worked_example.py once fixtures/climate/load/roster are
-real; nothing in this script needs to change.
+Runs on real fixture/roster/load/climate data when API_FOOTBALL_KEY is
+configured and reachable (see worked_example.get_windows() ->
+radar.build.build_for_club_with_source()); falls back to the
+illustrative Crystal Palace worked example otherwise. Every page
+carries a visible marker either way — "LIVE DATA — VERIFY BEFORE
+SHARING" or "SAMPLE OUTPUT — ILLUSTRATIVE DATA" — so this is never
+mistaken for one when it's actually the other.
 
 Carries a "Prepared with [Nutritionist Name]" credit line (spec section
 3: "the shareable artifact makes the nutritionist look prepared — not
@@ -37,7 +39,7 @@ from reportlab.pdfgen import canvas
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from radar.fuelling_risk import tier_name  # noqa: E402
-from worked_example import build_example_windows  # noqa: E402
+from worked_example import get_windows  # noqa: E402
 
 DEFAULT_FONT = Path(__file__).resolve().parent.parent / "assets" / "fonts" / "ArchivoBlack.ttf"
 OUT = sys.argv[1] if len(sys.argv) > 1 else "Dream-Radar-Briefing.pdf"
@@ -152,7 +154,7 @@ def header(page_label, club="CRYSTAL PALACE FC"):
     mark(46, H - 46, 1.05)
     tracked(62, H - 51, "DREAM RADAR", 12, WHITE, track=2.4)
     tracked(62, H - 62, f"FUELLING RISK BRIEFING · {club}", 5.5, Color(1, 1, 1, alpha=0.38), track=1.8)
-    t = "SAMPLE OUTPUT — ILLUSTRATIVE DATA"
+    t = DATA_PILL_LABEL
     tw = tracked_width(t, "Archivo", 6.2, 1.2)
     chip(W - 40 - tw - 16, H - 58, t, GOLD, size=6.2, track=1.2)
     c.setStrokeColor(Color(1, 1, 1, alpha=0.1))
@@ -197,10 +199,23 @@ def severity_bar(x, y, w, h, severity, color):
 
 
 # ═══════════════════════════════════════════════════════════════════
-windows, travel_by_fixture, climate_by_fixture = build_example_windows()
+windows, IS_REAL_DATA = get_windows()
 windows = sorted(windows, key=lambda w: w.severity, reverse=True)
 top = windows[0]
 rest = windows[1:]
+
+DATA_PILL_LABEL = "LIVE DATA — VERIFY BEFORE SHARING" if IS_REAL_DATA else "SAMPLE OUTPUT — ILLUSTRATIVE DATA"
+FOOTER_DISCLAIMER = (
+    [
+        "LIVE DATA: fixture dates, opponents, climate readings and player minutes on this page were pulled live",
+        "for this club — a new integration. Verify names and numbers before this reaches a nutritionist.",
+    ]
+    if IS_REAL_DATA
+    else [
+        "SAMPLE OUTPUT: fixture dates, opponents, climate readings and player minutes on this page are",
+        "illustrative, not a live pull. The scoring formula and citations are real — see docs/radar-scoring-design.md.",
+    ]
+)
 
 # ══ PAGE 1 — cover + season overview ═════════════════════════════
 bg()
@@ -444,10 +459,7 @@ for cite in top.decision.citations:
 
 # disclaimer
 glass(40, 60, W - 80, 40)
-body_text(56, 88, [
-    "SAMPLE OUTPUT: fixture dates, opponents, climate readings and player minutes on this page are",
-    "illustrative, not a live pull. The scoring formula and citations are real — see docs/radar-scoring-design.md.",
-], size=6.8, leading=10, color=Color(1, 1, 1, alpha=0.4))
+body_text(56, 88, FOOTER_DISCLAIMER, size=6.8, leading=10, color=Color(1, 1, 1, alpha=0.4))
 
 c.showPage()
 c.save()

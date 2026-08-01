@@ -12,8 +12,12 @@ Deliberately NOT the same content as the printed briefing. Spec section
 3 (positioning): surface a hidden planning challenge, don't dump the
 dataset. One number, one sentence, one door left open.
 
-Runs on the illustrative Crystal Palace worked example — see
-worked_example.py. Visibly marked SAMPLE OUTPUT throughout.
+Runs on real fixture/roster/load/climate data when API_FOOTBALL_KEY is
+configured and reachable (see worked_example.get_windows() ->
+radar.build.build_for_club_with_source()); falls back to the
+illustrative Crystal Palace worked example otherwise. Visibly marked
+either "Live Data — Verify Before Sharing" or "Sample Output —
+Illustrative Data" depending on which happened, never silently either.
 
 Output: a single self-contained HTML file. No build step, no server —
 open directly in a browser. Uses Google Fonts (Archivo Black + Inter) by
@@ -29,7 +33,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from worked_example import build_example_windows  # noqa: E402
+from worked_example import get_windows  # noqa: E402
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else "Dream-Radar-Teaser.html"
 
@@ -41,7 +45,8 @@ def fmt(d) -> str:
 
 
 def main() -> None:
-    windows, _, _ = build_example_windows()
+    windows, is_real = get_windows()
+    data_pill = "Live Data — Verify Before Sharing" if is_real else "Sample Output — Illustrative Data"
     top = sorted(windows, key=lambda w: w.severity, reverse=True)[0]
     f = top.contributing_factors
     tier = str(f["tier"])
@@ -237,7 +242,7 @@ def main() -> None:
         <div class="subwordmark">Live preview · {club}</div>
       </div>
     </div>
-    <div class="pill">Sample Output — Illustrative Data</div>
+    <div class="pill">{data_pill}</div>
   </header>
 
   <main>

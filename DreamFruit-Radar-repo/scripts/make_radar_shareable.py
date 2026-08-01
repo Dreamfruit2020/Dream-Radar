@@ -11,8 +11,12 @@ Same content depth as the PDF, laid out as a scrollable web page rather
 than two fixed sheets, so it holds up on a laptop or a phone when a
 nutritionist forwards it to their head of performance.
 
-Runs on the illustrative Crystal Palace worked example — see
-worked_example.py. Visibly marked SAMPLE OUTPUT throughout.
+Runs on real fixture/roster/load/climate data when API_FOOTBALL_KEY is
+configured and reachable (see worked_example.get_windows() ->
+radar.build.build_for_club_with_source()); falls back to the
+illustrative Crystal Palace worked example otherwise. Visibly marked
+either "Live Data — Verify Before Sharing" or "Sample Output —
+Illustrative Data" depending on which happened, never silently either.
 
 Output: a single self-contained HTML file. No build step, no server.
 Uses Google Fonts (Archivo Black + Inter) by CDN; falls back to a bold
@@ -34,7 +38,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from worked_example import build_example_windows  # noqa: E402
+from worked_example import get_windows  # noqa: E402
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else "Dream-Radar-Shareable.html"
 PDF_LINK = sys.argv[2] if len(sys.argv) > 2 else "Dream-Radar-Briefing.pdf"
@@ -144,9 +148,25 @@ def window_card(w, expanded: bool) -> str:
 
 
 def main() -> None:
-    windows, _, _ = build_example_windows()
+    windows, is_real = get_windows()
     windows = sorted(windows, key=lambda w: w.severity, reverse=True)
     cards = "".join(window_card(w, expanded=(i == 0)) for i, w in enumerate(windows))
+
+    if is_real:
+        data_pill = "Live Data — Verify Before Sharing"
+        disclaimer = (
+            "LIVE DATA: fixture dates, opponents, climate readings and player minutes on this page "
+            "were pulled live for this club. This is a new integration — verify names and numbers "
+            "before this reaches a nutritionist. The scoring formula and citations are real — "
+            "see docs/radar-scoring-design.md."
+        )
+    else:
+        data_pill = "Sample Output — Illustrative Data"
+        disclaimer = (
+            "SAMPLE OUTPUT: fixture dates, opponents, climate readings and player minutes on this "
+            "page are illustrative, not a live pull. The scoring formula and citations are real — "
+            "see docs/radar-scoring-design.md. Built from public data. Validated with your own staff."
+        )
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -332,7 +352,7 @@ def main() -> None:
         </div>
       </div>
       <div class="header-right">
-        <span class="pill">Sample Output — Illustrative Data</span>
+        <span class="pill">{esc(data_pill)}</span>
         <a class="pdf-btn" href="{esc(PDF_LINK)}">Download PDF ↓</a>
       </div>
     </header>
@@ -356,9 +376,7 @@ def main() -> None:
     </div>
 
     <footer>
-      <p class="disclaimer">SAMPLE OUTPUT: fixture dates, opponents, climate readings and player minutes
-        on this page are illustrative, not a live pull. The scoring formula and citations are real —
-        see docs/radar-scoring-design.md. Built from public data. Validated with your own staff.</p>
+      <p class="disclaimer">{esc(disclaimer)}</p>
       <div class="strapline">DREAM OS · v1</div>
     </footer>
   </div>
